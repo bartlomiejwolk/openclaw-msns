@@ -23,6 +23,7 @@ import type { ReplyPayload } from "../types.js";
 import { normalizeReplyPayload } from "./normalize-reply.js";
 import {
   formatBtwTextForExternalDelivery,
+  shouldAllowReasoningPayloadDelivery,
   shouldSuppressReasoningPayload,
 } from "./reply-payloads.js";
 
@@ -79,7 +80,11 @@ export type RouteReplyResult = {
  */
 export async function routeReply(params: RouteReplyParams): Promise<RouteReplyResult> {
   const { payload, channel, to, accountId, threadId, cfg, abortSignal } = params;
-  if (shouldSuppressReasoningPayload(payload)) {
+  if (
+    shouldSuppressReasoningPayload(payload, {
+      allowReasoningPayloads: shouldAllowReasoningPayloadDelivery({ channel, cfg, accountId }),
+    })
+  ) {
     return { ok: true };
   }
   const normalizedChannel = normalizeMessageChannel(channel);

@@ -205,6 +205,25 @@ describe("routeReply", () => {
     await expectSlackNoDelivery({ text: "Reasoning:\n_step_", isReasoning: true });
   });
 
+  it("delivers reasoning payloads on Discord when allowReasoningPayloads is enabled", async () => {
+    await routeReply({
+      payload: { text: "Reasoning:\n_step_", isReasoning: true },
+      channel: "discord",
+      to: "channel:123456",
+      cfg: {
+        channels: {
+          discord: {
+            allowReasoningPayloads: true,
+          },
+        },
+      } as never,
+    });
+    expectLastDelivery({
+      channel: "discord",
+      payloads: [expect.objectContaining({ text: "Reasoning:\n_step_", isReasoning: true })],
+    });
+  });
+
   it("drops silent token payloads", async () => {
     await expectSlackNoDelivery({ text: SILENT_REPLY_TOKEN });
   });

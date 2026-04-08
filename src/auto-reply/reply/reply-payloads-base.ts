@@ -1,3 +1,4 @@
+import type { OpenClawConfig } from "../../config/config.js";
 import type { ReplyToMode } from "../../config/types.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
 import { normalizeOptionalString } from "../../shared/string-coerce.js";
@@ -79,8 +80,34 @@ export function isRenderablePayload(payload: ReplyPayload): boolean {
   return hasReplyPayloadContent(payload, { extraContent: payload.audioAsVoice });
 }
 
-export function shouldSuppressReasoningPayload(payload: ReplyPayload): boolean {
-  return payload.isReasoning === true;
+export type ReasoningPayloadSuppressionOptions = {
+  allowReasoningPayloads?: boolean;
+};
+
+export function shouldSuppressReasoningPayload(
+  payload: ReplyPayload,
+  options?: ReasoningPayloadSuppressionOptions,
+): boolean {
+  return payload.isReasoning === true && options?.allowReasoningPayloads !== true;
+}
+
+export function shouldAllowReasoningPayloadDelivery(params: {
+  channel: string;
+  cfg: OpenClawConfig;
+  accountId?: string;
+}): boolean {
+  if (params.channel.trim().toLowerCase() !== "discord") {
+    return false;
+  }
+  const discord = params.cfg.channels?.discord;
+  if (!discord) {
+    return false;
+  }
+  const accountConfig = params.accountId ? discord.accounts?.[params.accountId] : undefined;
+  if (typeof accountConfig?.allowReasoningPayloads === "boolean") {
+    return accountConfig.allowReasoningPayloads;
+  }
+  return discord.allowReasoningPayloads === true;
 }
 
 export function applyReplyThreading(params: {

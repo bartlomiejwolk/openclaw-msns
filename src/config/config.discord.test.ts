@@ -117,4 +117,22 @@ describe("config discord", () => {
       }
     }
   });
+
+  it("accepts allowReasoningPayloads at root and account level", () => {
+    const res = validateConfigObject({
+      channels: {
+        discord: {
+          allowReasoningPayloads: true,
+          accounts: {
+            primary: {
+              token: "x",
+              allowReasoningPayloads: false,
+            },
+          },
+        },
+      },
+    });
+
+    expect(res.ok).toBe(true);
+  });
 });
