@@ -796,14 +796,14 @@ describe("processDiscordMessage draft streaming", () => {
     expect(deliverDiscordReply).toHaveBeenCalledTimes(1);
   });
 
-  it("suppresses reasoning payload delivery to Discord", async () => {
+  it("suppresses reasoning payload delivery to Discord by default", async () => {
     mockDispatchSingleBlockReply({ text: "thinking...", isReasoning: true });
     await processStreamOffDiscordMessage();
 
     expect(deliverDiscordReply).not.toHaveBeenCalled();
   });
 
-  it("suppresses reasoning-tagged final payload delivery to Discord", async () => {
+  it("suppresses reasoning-tagged final payload delivery to Discord by default", async () => {
     dispatchInboundMessage.mockImplementationOnce(async (params?: DispatchInboundParams) => {
       await params?.dispatcher.sendFinalReply({
         text: "Reasoning:\nthis should stay internal",
@@ -818,6 +818,37 @@ describe("processDiscordMessage draft streaming", () => {
 
     expect(deliverDiscordReply).not.toHaveBeenCalled();
     expect(editMessageDiscord).not.toHaveBeenCalled();
+  });
+
+  it("delivers reasoning payloads to Discord when allowReasoningPayloads is enabled", async () => {
+    dispatchInboundMessage.mockImplementationOnce(async (params?: DispatchInboundParams) => {
+      await params?.dispatcher.sendFinalReply({
+        text: "Reasoning:\nthis should be delivered",
+        isReasoning: true,
+      });
+      return { queuedFinal: true, counts: { final: 1, tool: 0, block: 0 } };
+    });
+
+    const ctx = await createBaseContext({
+      cfg: {
+        channels: {
+          discord: {
+            allowReasoningPayloads: true,
+          },
+        },
+      },
+      discordConfig: { streamMode: "off", allowReasoningPayloads: true },
+    });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    await processDiscordMessage(ctx as any);
+
+    expect(deliverDiscordReply).toHaveBeenCalledTimes(1);
+    expect(deliverDiscordReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replies: [expect.objectContaining({ isReasoning: true })],
+      }),
+    );
   });
 
   it("delivers non-reasoning block payloads to Discord", async () => {
