@@ -731,8 +731,18 @@ export async function processDiscordMessage(
           return;
         }
         const isFinal = info.kind === "final";
-        if (payload.isReasoning) {
-          // Reasoning/thinking payloads should not be delivered to Discord.
+        const accountReasoningPreference =
+          accountId && cfg.channels?.discord?.accounts
+            ? cfg.channels.discord.accounts[accountId]?.allowReasoningPayloads
+            : undefined;
+        const allowReasoningPayloads =
+          typeof discordConfig.allowReasoningPayloads === "boolean"
+            ? discordConfig.allowReasoningPayloads
+            : typeof accountReasoningPreference === "boolean"
+              ? accountReasoningPreference
+              : cfg.channels?.discord?.allowReasoningPayloads === true;
+        if (payload.isReasoning && !allowReasoningPayloads) {
+          // Keep reasoning payloads suppressed on Discord unless explicitly enabled.
           return;
         }
         if (draftStream && isFinal) {
