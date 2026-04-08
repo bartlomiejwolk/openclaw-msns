@@ -30,6 +30,10 @@ export type OutboundPayloadJson = {
   channelData?: Record<string, unknown>;
 };
 
+export type ReplyPayloadNormalizationOptions = {
+  allowReasoningPayloads?: boolean;
+};
+
 function mergeMediaUrls(...lists: Array<ReadonlyArray<string | undefined> | undefined>): string[] {
   const seen = new Set<string>();
   const merged: string[] = [];
@@ -54,10 +58,11 @@ function mergeMediaUrls(...lists: Array<ReadonlyArray<string | undefined> | unde
 
 export function normalizeReplyPayloadsForDelivery(
   payloads: readonly ReplyPayload[],
+  options?: ReplyPayloadNormalizationOptions,
 ): ReplyPayload[] {
   const normalized: ReplyPayload[] = [];
   for (const payload of payloads) {
-    if (shouldSuppressReasoningPayload(payload)) {
+    if (shouldSuppressReasoningPayload(payload, options)) {
       continue;
     }
     const parsed = parseReplyDirectives(payload.text ?? "");
@@ -96,9 +101,10 @@ export function normalizeReplyPayloadsForDelivery(
 
 export function normalizeOutboundPayloads(
   payloads: readonly ReplyPayload[],
+  options?: ReplyPayloadNormalizationOptions,
 ): NormalizedOutboundPayload[] {
   const normalizedPayloads: NormalizedOutboundPayload[] = [];
-  for (const payload of normalizeReplyPayloadsForDelivery(payloads)) {
+  for (const payload of normalizeReplyPayloadsForDelivery(payloads, options)) {
     const parts = resolveSendableOutboundReplyParts(payload);
     const interactive = payload.interactive;
     const channelData = payload.channelData;
@@ -123,9 +129,10 @@ export function normalizeOutboundPayloads(
 
 export function normalizeOutboundPayloadsForJson(
   payloads: readonly ReplyPayload[],
+  options?: ReplyPayloadNormalizationOptions,
 ): OutboundPayloadJson[] {
   const normalized: OutboundPayloadJson[] = [];
-  for (const payload of normalizeReplyPayloadsForDelivery(payloads)) {
+  for (const payload of normalizeReplyPayloadsForDelivery(payloads, options)) {
     const parts = resolveSendableOutboundReplyParts(payload);
     normalized.push({
       text: parts.text,

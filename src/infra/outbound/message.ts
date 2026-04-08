@@ -1,4 +1,5 @@
 import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
+import { shouldAllowReasoningPayloadDelivery } from "../../auto-reply/reply/reply-payloads.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { PollInput } from "../../polls.js";
 import { normalizePollInput } from "../../polls.js";
@@ -234,13 +235,23 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
   const channel = await resolveRequiredChannel({ cfg, channel: params.channel });
   const plugin = resolveRequiredPlugin(channel, cfg);
   const deliveryMode = plugin.outbound?.deliveryMode ?? "direct";
-  const normalizedPayloads = normalizeReplyPayloadsForDelivery([
+  const allowReasoningPayloads = shouldAllowReasoningPayloadDelivery({
+    channel,
+    cfg,
+    accountId: params.accountId,
+  });
+  const normalizedPayloads = normalizeReplyPayloadsForDelivery(
+    [
+      {
+        text: params.content,
+        mediaUrl: params.mediaUrl,
+        mediaUrls: params.mediaUrls,
+      },
+    ],
     {
-      text: params.content,
-      mediaUrl: params.mediaUrl,
-      mediaUrls: params.mediaUrls,
+      allowReasoningPayloads,
     },
-  ]);
+  );
   const mirrorText = normalizedPayloads
     .map((payload) => payload.text)
     .filter(Boolean)

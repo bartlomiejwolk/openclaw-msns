@@ -254,6 +254,8 @@ export type DiscordAccountConfig = {
   textChunkLimit?: number;
   /** Streaming + chunking settings. Prefer this nested shape over legacy flat keys. */
   streaming?: ChannelPreviewStreamingConfig;
+  /** Allow Discord delivery of reasoning payloads (default: false). */
+  allowReasoningPayloads?: boolean;
   /**
    * Soft max line count per Discord message.
    * Discord clients can clip/collapse very tall messages; splitting by lines

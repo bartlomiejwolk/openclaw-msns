@@ -8,6 +8,7 @@ import {
   resolveChunkMode,
   resolveTextChunkLimit,
 } from "../../auto-reply/chunk.js";
+import { shouldAllowReasoningPayloadDelivery } from "../../auto-reply/reply/reply-payloads.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import { loadChannelOutboundAdapter } from "../../channels/plugins/outbound/load.js";
 import type {
@@ -289,9 +290,12 @@ type DeliverOutboundPayloadsCoreParams = {
   gatewayClientScopes?: readonly string[];
 };
 
-function collectPayloadMediaSources(payloads: ReplyPayload[]): string[] {
+function collectPayloadMediaSources(
+  payloads: ReplyPayload[],
+  allowReasoningPayloads: boolean,
+): string[] {
   const mediaSources: string[] = [];
-  for (const payload of normalizeReplyPayloadsForDelivery(payloads)) {
+  for (const payload of normalizeReplyPayloadsForDelivery(payloads, { allowReasoningPayloads })) {
     mediaSources.push(...resolveSendableOutboundReplyParts(payload).mediaUrls);
   }
   return mediaSources;
@@ -328,9 +332,10 @@ function normalizeEmptyPayloadForDelivery(payload: ReplyPayload): ReplyPayload |
 function normalizePayloadsForChannelDelivery(
   payloads: ReplyPayload[],
   handler: ChannelHandler,
+  allowReasoningPayloads: boolean,
 ): ReplyPayload[] {
   const normalizedPayloads: ReplyPayload[] = [];
-  for (const payload of normalizeReplyPayloadsForDelivery(payloads)) {
+  for (const payload of normalizeReplyPayloadsForDelivery(payloads, { allowReasoningPayloads })) {
     let sanitizedPayload = payload;
     if (handler.sanitizeText && sanitizedPayload.text) {
       if (!handler.shouldSkipPlainTextSanitization?.(sanitizedPayload)) {
@@ -564,10 +569,15 @@ async function deliverOutboundPayloadsCore(
   const accountId = params.accountId;
   const deps = params.deps;
   const abortSignal = params.abortSignal;
+  const allowReasoningPayloads = shouldAllowReasoningPayloadDelivery({
+    channel,
+    cfg,
+    accountId,
+  });
   const mediaAccess = resolveAgentScopedOutboundMediaAccess({
     cfg,
     agentId: params.session?.agentId ?? params.mirror?.agentId,
-    mediaSources: collectPayloadMediaSources(payloads),
+    mediaSources: collectPayloadMediaSources(payloads, allowReasoningPayloads),
     sessionKey: params.session?.key,
     messageProvider: params.session?.key ? undefined : channel,
     accountId: params.session?.requesterAccountId ?? accountId,
@@ -643,7 +653,11 @@ async function deliverOutboundPayloadsCore(
       results.push(await handler.sendText(chunk, overrides));
     }
   };
-  const normalizedPayloads = normalizePayloadsForChannelDelivery(payloads, handler);
+  const normalizedPayloads = normalizePayloadsForChannelDelivery(
+    payloads,
+    handler,
+    allowReasoningPayloads,
+  );
   const hookRunner = getGlobalHookRunner();
   const sessionKeyForInternalHooks = params.mirror?.sessionKey ?? params.session?.key;
   const mirrorIsGroup = params.mirror?.isGroup;

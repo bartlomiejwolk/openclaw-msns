@@ -61,6 +61,35 @@ describe("normalizeReplyPayloadsForDelivery", () => {
     ).toEqual([]);
   });
 
+  it("keeps reasoning payloads when explicitly allowed", () => {
+    expect(
+      normalizeReplyPayloadsForDelivery(
+        [{ text: "Reasoning:\n_step_", isReasoning: true }, { text: "final answer" }],
+        { allowReasoningPayloads: true },
+      ),
+    ).toEqual([
+      {
+        text: "Reasoning:\n_step_",
+        isReasoning: true,
+        mediaUrls: undefined,
+        mediaUrl: undefined,
+        replyToId: undefined,
+        replyToCurrent: false,
+        replyToTag: false,
+        audioAsVoice: false,
+      },
+      {
+        text: "final answer",
+        mediaUrls: undefined,
+        mediaUrl: undefined,
+        replyToId: undefined,
+        replyToCurrent: false,
+        replyToTag: false,
+        audioAsVoice: false,
+      },
+    ]);
+  });
+
   it("keeps JSON NO_REPLY objects that include extra fields", () => {
     expect(
       normalizeReplyPayloadsForDelivery([{ text: '{"action":"NO_REPLY","note":"example"}' }]),

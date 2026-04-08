@@ -1,5 +1,6 @@
 import { resolveSendableOutboundReplyParts } from "openclaw/plugin-sdk/reply-payload";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
+import { shouldAllowReasoningPayloadDelivery } from "../../auto-reply/reply/reply-payloads.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
 import { dispatchChannelMessageAction } from "../../channels/plugins/message-action-dispatch.js";
 import { createOutboundSendDeps } from "../../cli/deps.js";
@@ -405,9 +406,17 @@ export const sendHandlers: GatewayRequestHandlers = {
         });
         const deliveryTarget = idLikeTarget?.to ?? resolvedTarget.to;
         const outboundDeps = context.deps ? createOutboundSendDeps(context.deps) : undefined;
-        const mirrorPayloads = normalizeReplyPayloadsForDelivery([
-          { text: message, mediaUrl, mediaUrls },
-        ]);
+        const allowReasoningPayloads = shouldAllowReasoningPayloadDelivery({
+          channel,
+          cfg,
+          accountId,
+        });
+        const mirrorPayloads = normalizeReplyPayloadsForDelivery(
+          [{ text: message, mediaUrl, mediaUrls }],
+          {
+            allowReasoningPayloads,
+          },
+        );
         const mirrorText = mirrorPayloads
           .map((payload) => payload.text)
           .filter(Boolean)

@@ -3,6 +3,7 @@ export {
   applyReplyThreading,
   formatBtwTextForExternalDelivery,
   isRenderablePayload,
+  shouldAllowReasoningPayloadDelivery,
   shouldSuppressReasoningPayload,
 } from "./reply-payloads-base.js";
 export {
